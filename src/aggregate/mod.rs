@@ -3,7 +3,7 @@
 //! Policies define what is allowed or required in the system. They can be simple
 //! rules or complex workflows requiring approvals and external interactions.
 
-use crate::{
+use cim_core_domain::{
     component::{Component, ComponentStorage},
     entity::{AggregateRoot, Entity, EntityId},
     errors::{DomainError, DomainResult},
