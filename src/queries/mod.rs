@@ -1,6 +1,6 @@
 //! Policy queries
 
-use cim_core_domain::query::Query;
+use cim_domain::Query;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

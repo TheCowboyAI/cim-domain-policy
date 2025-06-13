@@ -1,8 +1,6 @@
 //! Policy domain events
 
-use cim_core_domain::event::{DomainEvent, EventMetadata};
-use cim_core_domain::identifiers::AggregateId;
-use cim_core_domain::subject::Subject;
+use cim_domain::{DomainEvent, EventMetadata};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::collections::{HashMap, HashSet};

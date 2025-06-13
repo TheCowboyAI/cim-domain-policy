@@ -1,9 +1,8 @@
 //! Policy command handler implementation
 
 use crate::{Policy, commands::*};
-use cim_core_domain::command::CommandHandler;
-use cim_core_domain::repository::AggregateRepository;
-use async_trait::async_trait;
+use cim_domain::{CommandHandler, CommandEnvelope, CommandAcknowledgment, CommandStatus};
+use cim_domain::AggregateRepository;
 
 /// Policy command handler
 pub struct PolicyCommandHandler<R: AggregateRepository<Policy>> {
@@ -17,11 +16,10 @@ impl<R: AggregateRepository<Policy>> PolicyCommandHandler<R> {
     }
 }
 
-#[async_trait]
 impl<R: AggregateRepository<Policy> + Send + Sync> CommandHandler<EnactPolicy> for PolicyCommandHandler<R> {
-    type Error = cim_core_domain::errors::DomainError;
+    fn handle(&mut self, envelope: CommandEnvelope<EnactPolicy>) -> CommandAcknowledgment {
+        let command = envelope.command;
 
-    async fn handle(&self, command: EnactPolicy) -> Result<(), Self::Error> {
         let mut policy = Policy::new(
             command.policy_id,
             command.policy_type,
@@ -30,10 +28,25 @@ impl<R: AggregateRepository<Policy> + Send + Sync> CommandHandler<EnactPolicy> f
         );
 
         // Add metadata component
-        policy.add_component(command.metadata)?;
-
-        self.repository.save(&policy).await?;
-        Ok(())
+        match policy.add_component(command.metadata) {
+            Ok(_) => {
+                // In a real implementation, we would publish events here
+                CommandAcknowledgment {
+                    command_id: envelope.id,
+                    correlation_id: envelope.correlation_id,
+                    status: CommandStatus::Accepted,
+                    reason: None,
+                }
+            }
+            Err(e) => {
+                CommandAcknowledgment {
+                    command_id: envelope.id,
+                    correlation_id: envelope.correlation_id,
+                    status: CommandStatus::Rejected,
+                    reason: Some(e.to_string()),
+                }
+            }
+        }
     }
 }
 

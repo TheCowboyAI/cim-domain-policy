@@ -13,7 +13,8 @@ thiserror = "2.0"
 async-trait = "0.1"
 
 # Domain dependencies
-cim-core-domain = { path = "../cim-core-domain" }
+cim-domain = { path = "../cim-domain" }
+cim-subject = { path = "../cim-subject" }
 
 [dev-dependencies]
 tokio = { version = "1.42", features = ["full"] }

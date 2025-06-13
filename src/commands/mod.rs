@@ -1,7 +1,7 @@
 //! Policy commands
 
-use cim_core_domain::command::Command;
-use cim_core_domain::entity::EntityId;
+use cim_domain::Command;
+use cim_domain::EntityId;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::collections::HashMap;
