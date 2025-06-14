@@ -3,6 +3,18 @@
 //! Policies define what is allowed or required in the system. They can be simple
 //! rules or complex workflows requiring approvals and external interactions.
 
+pub mod authentication;
+
+// Re-export authentication components
+pub use authentication::{
+    AuthenticationRequirementsComponent, LocationRequirements, TimeRequirements,
+    RiskAdjustments, AdditionalRequirements, AuthenticationContextComponent,
+    FederationConfig, AuthenticationSession, AuthenticationEnforcementComponent,
+    AuthenticationEnforcementMode, AuthenticationFailureAction, LogSeverity,
+    AuthenticationAuditConfig, AuthenticationAuditEvent, AuditDestination,
+    RateLimitConfig, RateLimitScope, MfaWorkflowComponent, MfaStep, CompletedFactor,
+};
+
 use cim_domain::{
     Component, ComponentStorage,
     AggregateRoot, Entity, EntityId,
@@ -128,6 +140,16 @@ impl Policy {
             components: ComponentStorage::new(),
             version: 0,
         }
+    }
+
+    /// Create a new policy with default values for testing
+    pub fn new_with_defaults(id: Uuid) -> Self {
+        Self::new(
+            id,
+            PolicyType::Security,
+            PolicyScope::Global,
+            Uuid::new_v4(), // Default owner
+        )
     }
 
     /// Get the policy's ID

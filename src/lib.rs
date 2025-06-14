@@ -20,6 +20,13 @@ pub use aggregate::{
     RulesComponent, ApprovalRequirementsComponent, ApprovalStateComponent,
     EnforcementComponent, ExternalApprovalRequirement, Approval, Rejection,
     PendingExternalApproval, ExternalVerification, ViolationAction,
+    // Authentication components
+    AuthenticationRequirementsComponent, LocationRequirements, TimeRequirements,
+    RiskAdjustments, AdditionalRequirements, AuthenticationContextComponent,
+    FederationConfig, AuthenticationSession, AuthenticationEnforcementComponent,
+    AuthenticationEnforcementMode, AuthenticationFailureAction, LogSeverity,
+    AuthenticationAuditConfig, AuthenticationAuditEvent, AuditDestination,
+    RateLimitConfig, RateLimitScope, MfaWorkflowComponent, MfaStep, CompletedFactor,
 };
 
 pub use commands::{
@@ -27,6 +34,13 @@ pub use commands::{
     ApprovePolicy, RejectPolicy, SuspendPolicy, ReactivatePolicy,
     SupersedePolicy, ArchivePolicy, RequestPolicyExternalApproval,
     RecordPolicyExternalApproval,
+    // Authentication commands
+    RequestAuthentication, ApplyAuthenticationPolicy, DetermineAuthenticationType,
+    StartMfaWorkflow, CompleteAuthenticationFactor, VerificationProof,
+    MakeAuthenticationDecision, RiskAssessment, CreateAuthenticationSession,
+    TerminateAuthenticationSession, SessionTerminationReason,
+    UpdateAuthenticationRequirements, ConfigureFederatedAuthentication,
+    HandleAuthenticationFailure, RequestExternalAuthenticationApproval,
 };
 
 pub use events::{
@@ -34,8 +48,27 @@ pub use events::{
     PolicyRejected, PolicySuspended, PolicyReactivated,
     PolicySuperseded, PolicyArchived, PolicyExternalApprovalRequested,
     PolicyExternalApprovalReceived,
+    // Authentication events
+    AuthenticationRequested, AuthenticationPolicyApplied, AuthenticationType,
+    AuthenticationTypeDetermined, MfaWorkflowStarted, AuthenticationFactorCompleted,
+    AuthenticationDecisionMade, AuthenticationSessionCreated, AuthenticationSessionTerminated,
+    AuthenticationFailed, AuthenticationRequirementsUpdated, FederatedAuthenticationConfigured,
+    ExternalAuthenticationApprovalRequested, ExternalAuthenticationApprovalReceived,
+    AuthenticationRateLimitExceeded, LimitedEntity, AuthenticationAuditEventOccurred,
 };
 
 pub use handlers::{PolicyCommandHandler, PolicyEventHandler};
 pub use projections::PolicyView;
 pub use queries::{PolicyQuery, PolicyQueryHandler, FindActivePolicies};
+
+// Re-export authentication value objects
+pub use value_objects::{
+    AuthenticationFactor, BiometricType, TokenType,
+    TrustLevel, AuthenticationDecision, DenialReason,
+    LocationConstraint, IpNetwork, GeoRegion,
+    TimeConstraint, TimeRange, DateRange,
+    AuthenticationContext, IdentityRef, LocationContext,
+    GeoCoordinates, InternalCriteria, ExternalHandling,
+    ExternalProvider, ProviderType, IdentityVerificationLevel,
+    RiskConfiguration, RiskFactor, RiskLevel, RiskAction,
+};

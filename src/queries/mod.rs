@@ -1,7 +1,6 @@
 //! Policy queries
 
-use cim_domain::Query;
-use serde::{Deserialize, Serialize};
+use cim_domain::{Query, QueryHandler, DomainResult};
 use uuid::Uuid;
 
 /// Base policy query trait

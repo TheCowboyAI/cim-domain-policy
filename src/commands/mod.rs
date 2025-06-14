@@ -1,5 +1,17 @@
 //! Policy commands
 
+pub mod authentication;
+
+// Re-export authentication commands
+pub use authentication::{
+    RequestAuthentication, ApplyAuthenticationPolicy, DetermineAuthenticationType,
+    StartMfaWorkflow, CompleteAuthenticationFactor, VerificationProof,
+    MakeAuthenticationDecision, RiskAssessment, CreateAuthenticationSession,
+    TerminateAuthenticationSession, SessionTerminationReason,
+    UpdateAuthenticationRequirements, ConfigureFederatedAuthentication,
+    HandleAuthenticationFailure, RequestExternalAuthenticationApproval,
+};
+
 use cim_domain::Command;
 use cim_domain::EntityId;
 use serde::{Deserialize, Serialize};

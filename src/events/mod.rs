@@ -1,9 +1,21 @@
 //! Policy domain events
 
-use cim_domain::{DomainEvent, EventMetadata};
+pub mod authentication;
+
+// Re-export authentication events
+pub use authentication::{
+    AuthenticationRequested, AuthenticationPolicyApplied, AuthenticationType,
+    AuthenticationTypeDetermined, MfaWorkflowStarted, AuthenticationFactorCompleted,
+    AuthenticationDecisionMade, AuthenticationSessionCreated, AuthenticationSessionTerminated,
+    AuthenticationFailed, AuthenticationRequirementsUpdated, FederatedAuthenticationConfigured,
+    ExternalAuthenticationApprovalRequested, ExternalAuthenticationApprovalReceived,
+    AuthenticationRateLimitExceeded, LimitedEntity, AuthenticationAuditEventOccurred,
+};
+
+use cim_domain::DomainEvent;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// Policy enacted event
 #[derive(Debug, Clone, Serialize, Deserialize)]
