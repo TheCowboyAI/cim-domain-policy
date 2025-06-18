@@ -44,7 +44,7 @@ impl DomainEvent for PolicyEnacted {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.enacted.v1")
+        "policies.policy.enacted.v1".to_string()
     }
 }
 
@@ -71,7 +71,7 @@ impl DomainEvent for PolicySubmittedForApproval {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.submitted_for_approval.v1")
+        "policies.policy.submitted_for_approval.v1".to_string()
     }
 }
 
@@ -100,7 +100,7 @@ impl DomainEvent for PolicyApproved {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.approved.v1")
+        "policies.policy.approved.v1".to_string()
     }
 }
 
@@ -127,7 +127,7 @@ impl DomainEvent for PolicyRejected {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.rejected.v1")
+        "policies.policy.rejected.v1".to_string()
     }
 }
 
@@ -154,7 +154,7 @@ impl DomainEvent for PolicySuspended {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.suspended.v1")
+        "policies.policy.suspended.v1".to_string()
     }
 }
 
@@ -179,7 +179,7 @@ impl DomainEvent for PolicyReactivated {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.reactivated.v1")
+        "policies.policy.reactivated.v1".to_string()
     }
 }
 
@@ -204,7 +204,7 @@ impl DomainEvent for PolicySuperseded {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.superseded.v1")
+        "policies.policy.superseded.v1".to_string()
     }
 }
 
@@ -229,7 +229,7 @@ impl DomainEvent for PolicyArchived {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.archived.v1")
+        "policies.policy.archived.v1".to_string()
     }
 }
 
@@ -258,7 +258,7 @@ impl DomainEvent for PolicyExternalApprovalRequested {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.external_approval_requested.v1")
+        "policies.policy.external_approval_requested.v1".to_string()
     }
 }
 
@@ -285,6 +285,6 @@ impl DomainEvent for PolicyExternalApprovalReceived {
     }
 
     fn subject(&self) -> String {
-        format!("policies.policy.external_approval_received.v1")
+        "policies.policy.external_approval_received.v1".to_string()
     }
 }

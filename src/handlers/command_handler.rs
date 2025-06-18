@@ -45,7 +45,7 @@ impl<R: AggregateRepository<Policy> + Send + Sync> CommandHandler<EnactPolicy> f
                             command_id: envelope.id,
                             correlation_id: envelope.correlation_id,
                             status: CommandStatus::Rejected,
-                            reason: Some(format!("Failed to save policy: {}", e)),
+                            reason: Some(format!("Failed to save policy: {e}")),
                         }
                     }
                 }

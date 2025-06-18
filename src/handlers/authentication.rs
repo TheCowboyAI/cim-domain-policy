@@ -53,7 +53,7 @@ impl<R: AggregateRepository<Policy>> AuthenticationCommandHandler<R> {
         // Load the policy aggregate
         let policy = self.repository
             .load(cim_domain::EntityId::from_uuid(cmd.policy_id))
-            .map_err(|e| DomainError::generic(e))?
+            .map_err(DomainError::generic)?
             .ok_or_else(|| DomainError::generic("Policy not found"))?;
 
         // Get authentication requirements from policy
@@ -122,7 +122,7 @@ impl<R: AggregateRepository<Policy>> AuthenticationCommandHandler<R> {
         // Load the policy
         let policy = self.repository
             .load(cim_domain::EntityId::from_uuid(cmd.policy_id))
-            .map_err(|e| DomainError::generic(e))?
+            .map_err(DomainError::generic)?
             .ok_or_else(|| DomainError::generic("Policy not found"))?;
 
         // Verify policy has MFA requirements
@@ -160,7 +160,7 @@ impl<R: AggregateRepository<Policy>> AuthenticationCommandHandler<R> {
         // Load the policy
         let policy = self.repository
             .load(cim_domain::EntityId::from_uuid(cmd.policy_id))
-            .map_err(|e| DomainError::generic(e))?
+            .map_err(DomainError::generic)?
             .ok_or_else(|| DomainError::generic("Policy not found"))?;
 
         // Get MFA workflow component
@@ -221,7 +221,7 @@ impl<R: AggregateRepository<Policy>> AuthenticationCommandHandler<R> {
         // Load the policy
         let policy = self.repository
             .load(cim_domain::EntityId::from_uuid(cmd.policy_id))
-            .map_err(|e| DomainError::generic(e))?
+            .map_err(DomainError::generic)?
             .ok_or_else(|| DomainError::generic("Policy not found"))?;
 
         // Get requirements
@@ -301,7 +301,7 @@ impl<R: AggregateRepository<Policy>> AuthenticationCommandHandler<R> {
         // Load the policy
         let mut policy = self.repository
             .load(cim_domain::EntityId::from_uuid(cmd.policy_id))
-            .map_err(|e| DomainError::generic(e))?
+            .map_err(DomainError::generic)?
             .ok_or_else(|| DomainError::generic("Policy not found"))?;
 
         // Get authentication context
@@ -348,7 +348,7 @@ impl<R: AggregateRepository<Policy>> AuthenticationCommandHandler<R> {
 
         // Update policy
         policy.add_component(context)?;
-        self.repository.save(&policy).map_err(|e| DomainError::generic(e))?;
+        self.repository.save(&policy).map_err(DomainError::generic)?;
 
         let event = AuthenticationSessionCreated {
             policy_id: cmd.policy_id,
@@ -396,7 +396,7 @@ impl<R: AggregateRepository<Policy>> AuthenticationCommandHandler<R> {
         }
 
         // Check for federated providers
-        for (provider, _) in &auth_context.federation_mappings {
+        for provider in auth_context.federation_mappings.keys() {
             // In real implementation, would check for provider tokens
             // For now, just check if provider is configured
             if !provider.is_empty() {
