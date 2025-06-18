@@ -57,9 +57,15 @@ pub use events::{
     AuthenticationRateLimitExceeded, LimitedEntity, AuthenticationAuditEventOccurred,
 };
 
-pub use handlers::{PolicyCommandHandler, PolicyEventHandler};
+pub use handlers::{
+    PolicyCommandHandler,
+    PolicyEventHandler,
+};
+
 pub use projections::PolicyView;
-pub use queries::{PolicyQuery, PolicyQueryHandler, FindActivePolicies};
+
+// Re-export queries
+pub use queries::{FindPolicyById, ListPolicies};
 
 // Re-export authentication value objects
 pub use value_objects::{

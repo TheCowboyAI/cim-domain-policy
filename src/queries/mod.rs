@@ -1,31 +1,22 @@
-//! Policy queries
+//! Query types for the Policy domain
 
-use cim_domain::{Query, QueryHandler, DomainResult};
-use uuid::Uuid;
+use crate::value_objects::PolicyId;
+use serde::{Deserialize, Serialize};
 
-/// Base policy query trait
-pub trait PolicyQuery: Query {}
-
-/// Query to find active policies
-#[derive(Debug, Clone)]
-pub struct FindActivePolicies {
-    /// Filter by policy type (optional)
-    pub policy_type: Option<String>,
-    /// Filter by scope (optional)
-    pub scope: Option<String>,
-    /// Filter by owner (optional)
-    pub owner_id: Option<Uuid>,
+/// Query to find a policy by ID
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FindPolicyById {
+    /// The ID of the policy to find
+    pub policy_id: PolicyId,
 }
 
-impl Query for FindActivePolicies {}
-impl PolicyQuery for FindActivePolicies {}
-
-/// Policy query handler
-pub struct PolicyQueryHandler;
-
-impl PolicyQueryHandler {
-    /// Create a new policy query handler
-    pub fn new() -> Self {
-        Self
-    }
+/// Query to list all policies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListPolicies {
+    /// Optional filter by policy type
+    pub policy_type: Option<String>,
+    /// Maximum number of results to return
+    pub limit: Option<usize>,
+    /// Offset for pagination
+    pub offset: Option<usize>,
 }

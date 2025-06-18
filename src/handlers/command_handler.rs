@@ -30,12 +30,24 @@ impl<R: AggregateRepository<Policy> + Send + Sync> CommandHandler<EnactPolicy> f
         // Add metadata component
         match policy.add_component(command.metadata) {
             Ok(_) => {
-                // In a real implementation, we would publish events here
-                CommandAcknowledgment {
-                    command_id: envelope.id,
-                    correlation_id: envelope.correlation_id,
-                    status: CommandStatus::Accepted,
-                    reason: None,
+                // Save the policy to the repository
+                match self.repository.save(&policy) {
+                    Ok(_) => {
+                        CommandAcknowledgment {
+                            command_id: envelope.id,
+                            correlation_id: envelope.correlation_id,
+                            status: CommandStatus::Accepted,
+                            reason: None,
+                        }
+                    }
+                    Err(e) => {
+                        CommandAcknowledgment {
+                            command_id: envelope.id,
+                            correlation_id: envelope.correlation_id,
+                            status: CommandStatus::Rejected,
+                            reason: Some(format!("Failed to save policy: {}", e)),
+                        }
+                    }
                 }
             }
             Err(e) => {
