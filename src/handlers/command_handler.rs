@@ -35,7 +35,7 @@ impl<R: AggregateRepository<Policy> + Send + Sync> CommandHandler<EnactPolicy> f
                     Ok(_) => {
                         CommandAcknowledgment {
                             command_id: envelope.id,
-                            correlation_id: envelope.correlation_id,
+                            correlation_id: envelope.identity.correlation_id.clone(),
                             status: CommandStatus::Accepted,
                             reason: None,
                         }
@@ -43,7 +43,7 @@ impl<R: AggregateRepository<Policy> + Send + Sync> CommandHandler<EnactPolicy> f
                     Err(e) => {
                         CommandAcknowledgment {
                             command_id: envelope.id,
-                            correlation_id: envelope.correlation_id,
+                            correlation_id: envelope.identity.correlation_id.clone(),
                             status: CommandStatus::Rejected,
                             reason: Some(format!("Failed to save policy: {e}")),
                         }
@@ -53,7 +53,7 @@ impl<R: AggregateRepository<Policy> + Send + Sync> CommandHandler<EnactPolicy> f
             Err(e) => {
                 CommandAcknowledgment {
                     command_id: envelope.id,
-                    correlation_id: envelope.correlation_id,
+                    correlation_id: envelope.identity.correlation_id.clone(),
                     status: CommandStatus::Rejected,
                     reason: Some(e.to_string()),
                 }
