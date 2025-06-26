@@ -2,19 +2,41 @@
 name = "cim-domain-policy"
 version = "0.3.0"
 edition = "2021"
+authors = ["The Cowboy AI"]
+description = "Policy domain for CIM"
+license = "MIT"
+repository = "https://github.com/thecowboyai/alchemist"
+keywords = ["cim", "domain", "policy", "governance", "rules"]
+categories = ["data-structures"]
 
 [dependencies]
+# Domain dependencies
+cim-domain = { path = "../cim-domain" }
+cim-subject = { path = "../cim-subject" }
+cim-domain-identity = { path = "../cim-domain-identity" }
+
 # Core dependencies
 uuid = { version = "1.11", features = ["v4", "serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0"
-async-trait = "0.1"
+tracing = "0.1"
 
-# Domain dependencies
-cim-domain = { path = "../cim-domain" }
-cim-subject = { path = "../cim-subject" }
+# Bevy dependencies
+bevy_ecs = { path = "../bevy-patched/crates/bevy_ecs" }
+bevy_app = { path = "../bevy-patched/crates/bevy_app" }
+bevy_time = { path = "../bevy-patched/crates/bevy_time" }
+
+# Async dependencies
+async-trait = "0.1"
+tokio = { version = "1.42", features = ["full"] }
+async-nats = "0.35"
+futures = "0.3"
 
 [dev-dependencies]
-tokio = { version = "1.42", features = ["full"] }
+# Test dependencies
+tokio-test = "0.4"
+pretty_assertions = "1.4"
+rstest = "0.18"
+tracing-subscriber = "0.3"

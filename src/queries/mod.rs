@@ -1,6 +1,8 @@
 //! Query types for the Policy domain
 
-use crate::value_objects::PolicyId;
+use crate::components::PolicyId;
+use crate::value_objects::{PolicyType, PolicyScope, PolicyStatus};
+use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 
 /// Query to find a policy by ID

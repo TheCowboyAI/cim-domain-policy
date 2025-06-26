@@ -2,6 +2,10 @@
 //!
 //! Policies define what is allowed or required in the system. They can be simple
 //! rules or complex workflows requiring approvals and external interactions.
+//!
+//! NOTE: This module is kept for backward compatibility during the migration to ECS.
+//! New code should use the ECS-based components in the `components` module instead.
+//! The aggregate pattern is being phased out in favor of entities with components.
 
 pub mod authentication;
 

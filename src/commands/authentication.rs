@@ -2,7 +2,10 @@
 //!
 //! These commands handle authentication policy operations and cross-domain coordination.
 
-use crate::value_objects::authentication::*;
+use crate::value_objects::{
+    AuthenticationFactor, IdentityRef, LocationContext, AuthenticationContext,
+    TrustLevel, RiskLevel, RiskFactor, RiskAction, DenialReason,
+};
 use crate::aggregate::authentication::{
     AuthenticationRequirementsComponent, FederationConfig, CompletedFactor,
 };

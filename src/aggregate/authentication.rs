@@ -1,8 +1,13 @@
-//! Authentication-specific components for Policy aggregates
+//! Authentication-related aggregates and components for policy composition
 //!
 //! These components enable policies to define and enforce authentication requirements.
 
-use crate::value_objects::authentication::*;
+use crate::value_objects::{
+    AuthenticationFactor, BiometricType, TrustLevel, LocationConstraint,
+    TimeConstraint, RiskLevel, RiskFactor, RiskAction, InternalCriteria,
+    ExternalHandling, IdentityRef, LocationContext, ProviderType,
+    IdentityVerificationLevel, RiskConfiguration,
+};
 use cim_domain::Component;
 use serde::{Deserialize, Serialize};
 use std::any::Any;

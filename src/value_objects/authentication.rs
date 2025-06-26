@@ -7,6 +7,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 use uuid::Uuid;
+use chrono::{DateTime, Utc, Duration};
+
+// Type aliases for compatibility
+pub type Totp = AuthenticationFactor;
+pub type IdentityType = IdentityRef;
 
 /// Authentication factors that can be required by policies
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -15,6 +20,8 @@ pub enum AuthenticationFactor {
     Password,
     /// One-time password (OTP)
     Otp,
+    /// Time-based OTP (alias)
+    Totp,
     /// SMS verification
     Sms,
     /// Email verification
@@ -337,14 +344,31 @@ pub struct ExternalProvider {
     pub trust_level: TrustLevel,
 }
 
-/// Types of external identity providers
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Authentication provider types
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ProviderType {
-    OAuth2,
-    SAML,
-    OpenIDConnect,
-    LDAP,
-    Custom(String),
+    /// Internal authentication (username/password)
+    Internal,
+    /// OAuth2 provider
+    OAuth2 {
+        provider_name: String,
+        client_id: String,
+    },
+    /// SAML provider
+    Saml {
+        provider_name: String,
+        entity_id: String,
+    },
+    /// LDAP/Active Directory
+    Ldap {
+        server_url: String,
+        base_dn: String,
+    },
+    /// Custom provider
+    Custom {
+        provider_id: String,
+        provider_type: String,
+    },
 }
 
 /// Identity verification levels
@@ -384,8 +408,8 @@ pub enum RiskFactor {
     HighValueTransaction,
 }
 
-/// Risk levels
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// Risk level assessment
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum RiskLevel {
     Low,
     Medium,

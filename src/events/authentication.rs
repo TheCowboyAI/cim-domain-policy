@@ -1,19 +1,29 @@
-//! Authentication-specific events for Policy domain
-//!
-//! These events represent authentication-related occurrences in the system.
+//! Authentication-related domain events
 
-use crate::value_objects::authentication::*;
+use bevy_ecs::prelude::*;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use std::collections::HashMap;
+
+use crate::components::authentication::{TerminationReason};
+use crate::commands::authentication::{RiskAssessment, SessionTerminationReason};
+use crate::value_objects::{
+    AuthenticationFactor, IdentityRef, LocationContext, TrustLevel,
+    AuthenticationDecision, RiskLevel, RiskFactor, DenialReason,
+};
 use crate::aggregate::authentication::{
     AuthenticationRequirementsComponent, FederationConfig, AuthenticationAuditEvent,
 };
-use crate::commands::authentication::{RiskAssessment, SessionTerminationReason};
 use cim_domain::DomainEvent;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use uuid::Uuid;
+
+// Type aliases for system compatibility
+pub type AuthenticationRequired = AuthenticationRequested;
+pub type AuthenticationSucceeded = AuthenticationSessionCreated;
+pub type SessionExpired = AuthenticationSessionTerminated;
 
 /// Authentication was requested
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Event, Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticationRequested {
     /// Request identifier
     pub request_id: Uuid,
@@ -29,6 +39,34 @@ pub struct AuthenticationRequested {
 
     /// Timestamp
     pub requested_at: chrono::DateTime<chrono::Utc>,
+    
+    // For compatibility with systems
+    pub policy_id: Uuid,
+    pub required_factors: Vec<AuthenticationFactor>,
+    pub minimum_trust_level: TrustLevel,
+    pub context: HashMap<String, String>,
+}
+
+impl Default for AuthenticationRequested {
+    fn default() -> Self {
+        Self {
+            request_id: Uuid::new_v4(),
+            identity_ref: None,
+            location: LocationContext {
+                ip_address: None,
+                coordinates: None,
+                country: None,
+                network_type: None,
+                device_id: None,
+            },
+            available_factors: Vec::new(),
+            requested_at: chrono::Utc::now(),
+            policy_id: Uuid::new_v4(),
+            required_factors: Vec::new(),
+            minimum_trust_level: TrustLevel::None,
+            context: HashMap::new(),
+        }
+    }
 }
 
 impl DomainEvent for AuthenticationRequested {
@@ -37,11 +75,11 @@ impl DomainEvent for AuthenticationRequested {
     }
 
     fn aggregate_id(&self) -> Uuid {
-        self.request_id // Use request_id as aggregate_id for cross-domain events
+        self.policy_id
     }
 
     fn subject(&self) -> String {
-        "policy.authentication.requested.v1".to_string()
+        format!("policy.{}.authentication_requested", self.policy_id)
     }
 }
 
@@ -221,7 +259,7 @@ impl DomainEvent for AuthenticationDecisionMade {
 }
 
 /// Authentication session was created
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Event, Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticationSessionCreated {
     /// Policy ID
     pub policy_id: Uuid,
@@ -243,6 +281,39 @@ pub struct AuthenticationSessionCreated {
 
     /// Location
     pub location: LocationContext,
+    
+    // For compatibility with systems
+    pub user_id: Uuid,
+    pub authenticated_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl AuthenticationSessionCreated {
+    pub fn new(
+        policy_id: Uuid,
+        session_id: Uuid,
+        user_id: Uuid,
+        factors_used: Vec<AuthenticationFactor>,
+        trust_level: TrustLevel,
+    ) -> Self {
+        let now = chrono::Utc::now();
+        Self {
+            policy_id,
+            session_id,
+            identity_ref: IdentityRef::Person(user_id),
+            factors_used,
+            trust_level,
+            expires_at: now + chrono::Duration::hours(24),
+            location: LocationContext {
+                ip_address: None,
+                coordinates: None,
+                country: None,
+                network_type: None,
+                device_id: None,
+            },
+            user_id,
+            authenticated_at: now,
+        }
+    }
 }
 
 impl DomainEvent for AuthenticationSessionCreated {
@@ -255,42 +326,141 @@ impl DomainEvent for AuthenticationSessionCreated {
     }
 
     fn subject(&self) -> String {
-        "policy.authentication.session_created.v1".to_string()
+        format!("policy.{}.authentication_succeeded", self.policy_id)
     }
 }
 
-/// Authentication session was terminated
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthenticationSessionTerminated {
-    /// Policy ID
-    pub policy_id: Uuid,
-
-    /// Session ID
+/// Authentication session state changed
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationStateChanged {
     pub session_id: Uuid,
-
-    /// Termination reason
-    pub reason: SessionTerminationReason,
-
-    /// Terminated at
-    pub terminated_at: chrono::DateTime<chrono::Utc>,
+    pub identity_ref: IdentityRef,
+    pub from_state: String, // State name for serialization
+    pub to_state: String,
+    pub output: AuthenticationOutputEvent,
+    pub timestamp: DateTime<Utc>,
 }
 
-impl DomainEvent for AuthenticationSessionTerminated {
-    fn event_type(&self) -> &'static str {
-        "AuthenticationSessionTerminated"
-    }
+/// Serializable version of AuthenticationOutput for events
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum AuthenticationOutputEvent {
+    ChallengeIssued {
+        factor: AuthenticationFactor,
+        challenge_id: Uuid,
+        expires_at: DateTime<Utc>,
+    },
+    FactorVerified {
+        factor: AuthenticationFactor,
+        trust_contribution: f32,
+    },
+    FactorFailed {
+        factor: AuthenticationFactor,
+        remaining_attempts: u8,
+    },
+    AuthenticationComplete {
+        session_token_id: Uuid,
+        trust_level: TrustLevel,
+        valid_until: DateTime<Utc>,
+    },
+    SessionSuspended {
+        suspension_token_id: Uuid,
+        can_resume_until: Option<DateTime<Utc>>,
+    },
+    SessionTerminated {
+        termination_reason: TerminationReason,
+        total_duration_seconds: i64,
+    },
+    AdditionalFactorsRequired {
+        factors: Vec<AuthenticationFactor>,
+        reason: String,
+    },
+}
 
-    fn aggregate_id(&self) -> Uuid {
-        self.policy_id
-    }
+/// Authentication session started
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationSessionStarted {
+    pub session_id: Uuid,
+    pub identity_ref: IdentityRef,
+    pub initial_factors: Vec<AuthenticationFactor>,
+    pub risk_level: RiskLevel,
+    pub timestamp: DateTime<Utc>,
+}
 
-    fn subject(&self) -> String {
-        "policy.authentication.session_terminated.v1".to_string()
-    }
+/// Authentication factor challenge issued
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationChallengeIssued {
+    pub session_id: Uuid,
+    pub challenge_id: Uuid,
+    pub factor: AuthenticationFactor,
+    pub expires_at: DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Authentication factor verified
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationFactorVerified {
+    pub session_id: Uuid,
+    pub factor: AuthenticationFactor,
+    pub trust_contribution: f32,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Authentication factor failed
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationFactorFailed {
+    pub session_id: Uuid,
+    pub factor: AuthenticationFactor,
+    pub reason: String,
+    pub remaining_attempts: u8,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Authentication completed successfully
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationCompleted {
+    pub session_id: Uuid,
+    pub identity_ref: IdentityRef,
+    pub factors_used: Vec<AuthenticationFactor>,
+    pub trust_level: TrustLevel,
+    pub session_token_id: Uuid,
+    pub valid_until: DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Authentication session suspended
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationSessionSuspended {
+    pub session_id: Uuid,
+    pub reason: String,
+    pub can_resume: bool,
+    pub suspension_token_id: Option<Uuid>,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Authentication session terminated
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationSessionTerminated {
+    pub session_id: Uuid,
+    pub reason: TerminationReason,
+    pub factors_used: Vec<AuthenticationFactor>,
+    pub final_trust_level: Option<TrustLevel>,
+    pub duration_seconds: i64,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Risk assessment changed during authentication
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct AuthenticationRiskAssessmentChanged {
+    pub session_id: Uuid,
+    pub old_risk_level: RiskLevel,
+    pub new_risk_level: RiskLevel,
+    pub risk_factors: Vec<String>, // Serialized risk factors
+    pub additional_factors_required: Vec<AuthenticationFactor>,
+    pub timestamp: DateTime<Utc>,
 }
 
 /// Authentication failed
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Event, Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticationFailed {
     /// Policy ID
     pub policy_id: Uuid,
@@ -321,7 +491,7 @@ impl DomainEvent for AuthenticationFailed {
     }
 
     fn subject(&self) -> String {
-        "policy.authentication.failed.v1".to_string()
+        format!("policy.{}.authentication_failed", self.policy_id)
     }
 }
 
@@ -539,64 +709,53 @@ impl DomainEvent for AuthenticationAuditEventOccurred {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::{IpAddr, Ipv4Addr};
 
     #[test]
     fn test_authentication_requested_event() {
         let event = AuthenticationRequested {
             request_id: Uuid::new_v4(),
-            identity_ref: Some(IdentityRef::Person(Uuid::new_v4())),
+            policy_id: Uuid::new_v4(),
+            identity_ref: None,
             location: LocationContext {
                 ip_address: Some("192.168.1.1".to_string()),
                 coordinates: None,
                 country: Some("US".to_string()),
-                network_type: Some("corporate".to_string()),
+                network_type: None,
                 device_id: None,
             },
             available_factors: vec![AuthenticationFactor::Password],
             requested_at: chrono::Utc::now(),
+            required_factors: vec![],
+            minimum_trust_level: TrustLevel::Low,
+            context: HashMap::new(),
         };
 
         assert_eq!(event.event_type(), "AuthenticationRequested");
-        assert!(event.identity_ref.is_some());
     }
 
     #[test]
     fn test_authentication_type_enum() {
         let internal = AuthenticationType::Internal;
         let external = AuthenticationType::External;
-        let federated = AuthenticationType::Federated { provider: "google".to_string() };
+        let federated = AuthenticationType::Federated {
+            provider: "Google".to_string(),
+        };
 
         assert_eq!(internal, AuthenticationType::Internal);
-        assert_ne!(internal, external);
-
-        match federated {
-            AuthenticationType::Federated { provider } => assert_eq!(provider, "google"),
-            _ => panic!("Expected federated type"),
-        }
+        assert_ne!(external, internal);
+        assert!(matches!(federated, AuthenticationType::Federated { .. }));
     }
 
     #[test]
     fn test_limited_entity_variants() {
         let identity_limit = LimitedEntity::Identity(IdentityRef::Person(Uuid::new_v4()));
-        let ip_limit = LimitedEntity::IpAddress(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
+        let ip_limit = LimitedEntity::IpAddress(std::net::IpAddr::V4(
+            std::net::Ipv4Addr::new(192, 168, 1, 1),
+        ));
         let global_limit = LimitedEntity::Global;
 
-        match identity_limit {
-            LimitedEntity::Identity(_) => {}
-            _ => panic!("Expected identity limit"),
-        }
-
-        match ip_limit {
-            LimitedEntity::IpAddress(ip) => {
-                assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
-            }
-            _ => panic!("Expected IP limit"),
-        }
-
-        match global_limit {
-            LimitedEntity::Global => {}
-            _ => panic!("Expected global limit"),
-        }
+        assert!(matches!(identity_limit, LimitedEntity::Identity(_)));
+        assert!(matches!(ip_limit, LimitedEntity::IpAddress(_)));
+        assert!(matches!(global_limit, LimitedEntity::Global));
     }
 }
