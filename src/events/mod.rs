@@ -12,13 +12,15 @@ pub use authentication::{
     AuthenticationRateLimitExceeded, LimitedEntity, AuthenticationAuditEventOccurred,
 };
 
+use bevy_ecs::prelude::Event;
 use cim_domain::DomainEvent;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::collections::HashMap;
+use crate::components::policy::{ScopeType, PolicyType as ComponentPolicyType};
 
 /// Policy enacted event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicyEnacted {
     /// The unique identifier of the policy
     pub policy_id: Uuid,
@@ -48,8 +50,80 @@ impl DomainEvent for PolicyEnacted {
     }
 }
 
-/// Policy submitted for approval
+/// Policy created event (for ECS system)
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct PolicyCreated {
+    pub policy_id: Uuid,
+    pub policy_type: ComponentPolicyType,
+    pub scope_type: ScopeType,
+    pub targets: Vec<String>,
+    pub priority: u32,
+    pub override_lower: bool,
+}
+
+impl DomainEvent for PolicyCreated {
+    fn aggregate_id(&self) -> Uuid {
+        self.policy_id
+    }
+
+    fn event_type(&self) -> &'static str {
+        "PolicyCreated"
+    }
+
+    fn subject(&self) -> String {
+        "policies.policy.created.v1".to_string()
+    }
+}
+
+/// Policy updated event (for ECS system)
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct PolicyUpdated {
+    pub policy_id: Uuid,
+    pub new_scope: Option<PolicyScopeUpdate>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PolicyScopeUpdate {
+    pub scope_type: ScopeType,
+    pub targets: Vec<String>,
+}
+
+impl DomainEvent for PolicyUpdated {
+    fn aggregate_id(&self) -> Uuid {
+        self.policy_id
+    }
+
+    fn event_type(&self) -> &'static str {
+        "PolicyUpdated"
+    }
+
+    fn subject(&self) -> String {
+        "policies.policy.updated.v1".to_string()
+    }
+}
+
+/// Policy activated event (for ECS system)
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
+pub struct PolicyActivated {
+    pub policy_id: Uuid,
+}
+
+impl DomainEvent for PolicyActivated {
+    fn aggregate_id(&self) -> Uuid {
+        self.policy_id
+    }
+
+    fn event_type(&self) -> &'static str {
+        "PolicyActivated"
+    }
+
+    fn subject(&self) -> String {
+        "policies.policy.activated.v1".to_string()
+    }
+}
+
+/// Policy submitted for approval
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicySubmittedForApproval {
     /// Policy ID
     pub policy_id: Uuid,
@@ -76,7 +150,7 @@ impl DomainEvent for PolicySubmittedForApproval {
 }
 
 /// Policy approved
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicyApproved {
     /// Policy ID
     pub policy_id: Uuid,
@@ -105,7 +179,7 @@ impl DomainEvent for PolicyApproved {
 }
 
 /// Policy rejected
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicyRejected {
     /// Policy ID
     pub policy_id: Uuid,
@@ -132,7 +206,7 @@ impl DomainEvent for PolicyRejected {
 }
 
 /// Policy suspended
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicySuspended {
     /// Policy ID
     pub policy_id: Uuid,
@@ -159,7 +233,7 @@ impl DomainEvent for PolicySuspended {
 }
 
 /// Policy reactivated
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicyReactivated {
     /// Policy ID
     pub policy_id: Uuid,
@@ -184,7 +258,7 @@ impl DomainEvent for PolicyReactivated {
 }
 
 /// Policy superseded by another
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicySuperseded {
     /// Policy ID being superseded
     pub policy_id: Uuid,
@@ -209,7 +283,7 @@ impl DomainEvent for PolicySuperseded {
 }
 
 /// Policy archived
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicyArchived {
     /// Policy ID
     pub policy_id: Uuid,
@@ -234,7 +308,7 @@ impl DomainEvent for PolicyArchived {
 }
 
 /// External approval requested for policy
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicyExternalApprovalRequested {
     /// Policy ID
     pub policy_id: Uuid,
@@ -263,7 +337,7 @@ impl DomainEvent for PolicyExternalApprovalRequested {
 }
 
 /// External approval received for policy
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Event)]
 pub struct PolicyExternalApprovalReceived {
     /// Policy ID
     pub policy_id: Uuid,

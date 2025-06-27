@@ -4,13 +4,16 @@
 //! - Policy aggregate and components
 //! - Policy commands and events
 //! - Policy command and query handlers
+//! - ECS components and systems for policy management
 
 pub mod aggregate;
 pub mod commands;
+pub mod components;
 pub mod events;
 pub mod handlers;
 pub mod projections;
 pub mod queries;
+pub mod systems;
 pub mod value_objects;
 
 // Re-export main types
@@ -44,7 +47,8 @@ pub use commands::{
 };
 
 pub use events::{
-    PolicyEnacted, PolicySubmittedForApproval, PolicyApproved,
+    PolicyEnacted, PolicyCreated, PolicyUpdated, PolicyActivated,
+    PolicySubmittedForApproval, PolicyApproved,
     PolicyRejected, PolicySuspended, PolicyReactivated,
     PolicySuperseded, PolicyArchived, PolicyExternalApprovalRequested,
     PolicyExternalApprovalReceived,
