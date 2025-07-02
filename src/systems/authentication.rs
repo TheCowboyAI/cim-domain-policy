@@ -1,6 +1,7 @@
-//! Authentication policy systems
+//! Authentication systems for policy enforcement
 
-use bevy_ecs::prelude::*;
+use crate::components::*;
+use crate::events::*;
 
 /// System to evaluate authentication policies
 pub fn evaluate_auth_policy_system() {

@@ -44,11 +44,4 @@ pub use evaluation::{
     resolve_conflicts_system,
     cache_decisions_system,
     audit_decisions_system,
-};
-
-// Re-export all systems
-pub use lifecycle::*;
-pub use approval::*;
-pub use enforcement::*;
-pub use authentication::*;
-pub use evaluation::*; 
+}; 
