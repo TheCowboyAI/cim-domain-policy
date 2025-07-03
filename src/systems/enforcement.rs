@@ -215,8 +215,8 @@ pub fn generate_compliance_report_system(
                     if metrics.total_evaluations > 0 {
                         let allow_rate = (metrics.allowed as f64 / metrics.total_evaluations as f64) * 100.0;
                         let deny_rate = (metrics.denied as f64 / metrics.total_evaluations as f64) * 100.0;
-                        println!("Allow Rate: {:.2}%", allow_rate);
-                        println!("Deny Rate: {:.2}%", deny_rate);
+                        println!("Allow Rate: {allow_rate:.2}%");
+                        println!("Deny Rate: {deny_rate:.2}%");
                     }
                 }
             }
@@ -227,7 +227,7 @@ pub fn generate_compliance_report_system(
                 .filter(|v| v.policy_id == policy.policy_id)
                 .count();
             
-            println!("Active Violations: {}", violation_count);
+            println!("Active Violations: {violation_count}");
         }
         
         println!("\n=== End of Report ===\n");

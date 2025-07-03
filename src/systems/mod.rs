@@ -40,7 +40,7 @@ pub use authentication::{
 };
 
 pub use evaluation::{
-    evaluate_policies_system,
+    evaluate_policy_system,
     resolve_conflicts_system,
     cache_decisions_system,
     audit_decisions_system,

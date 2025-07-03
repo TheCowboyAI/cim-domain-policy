@@ -45,7 +45,7 @@ pub fn update_policy_system(
                 
                 // Update scope if provided
                 if let Some(new_scope) = &event.new_scope {
-                    scope.scope_type = new_scope.scope_type.clone();
+                    scope.scope_type = new_scope.scope_type;
                     scope.targets = new_scope.targets.clone();
                 }
             }

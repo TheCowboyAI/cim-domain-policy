@@ -1,10 +1,7 @@
 //! Policy evaluation systems
 
-use crate::components::*;
-use crate::events::*;
-
 /// System to evaluate policies
-pub fn evaluate_policies_system() {
+pub fn evaluate_policy_system() {
     // TODO: Implement
 }
 

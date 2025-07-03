@@ -3,20 +3,14 @@
 //! Tests the complete authentication flow from Policy domain through
 //! Identity, Location, and Workflow domains.
 
-use cim_domain_policy::{
-    aggregate::Policy,
-    aggregate::authentication::*,
-    commands::authentication::*,
-    handlers::AuthenticationCommandHandler,
-    value_objects::authentication::*,
-};
-use cim_domain::{
-    AggregateRepository, InMemoryRepository,
-    EntityId,
-};
-use uuid::Uuid;
-use std::collections::HashMap;
 use chrono::Duration;
+use cim_domain::{AggregateRepository, EntityId, InMemoryRepository};
+use cim_domain_policy::{
+    aggregate::authentication::*, aggregate::Policy, commands::authentication::*,
+    handlers::AuthenticationCommandHandler, value_objects::authentication::*,
+};
+use std::collections::HashMap;
+use uuid::Uuid;
 
 /// Test the complete authentication request flow
 #[test]
@@ -37,10 +31,7 @@ fn test_authentication_request_flow() {
             network_type: Some("corporate".to_string()),
             device_id: Some("device-123".to_string()),
         },
-        available_factors: vec![
-            AuthenticationFactor::Password,
-            AuthenticationFactor::Otp,
-        ],
+        available_factors: vec![AuthenticationFactor::Password, AuthenticationFactor::Otp],
         client_metadata: HashMap::new(),
     };
 
@@ -134,10 +125,7 @@ fn test_mfa_workflow_start() {
         policy_id,
         request_id: Uuid::new_v4(),
         identity_ref: IdentityRef::Person(Uuid::new_v4()),
-        required_factors: vec![
-            AuthenticationFactor::Password,
-            AuthenticationFactor::Otp,
-        ],
+        required_factors: vec![AuthenticationFactor::Password, AuthenticationFactor::Otp],
         timeout: Duration::minutes(10),
     };
 
@@ -209,14 +197,12 @@ fn test_authentication_decision() {
     let cmd = MakeAuthenticationDecision {
         policy_id,
         request_id: Uuid::new_v4(),
-        completed_factors: vec![
-            CompletedFactor {
-                factor: AuthenticationFactor::Password,
-                completed_at: chrono::Utc::now(),
-                verification_method: "password-hash".to_string(),
-                metadata: HashMap::new(),
-            },
-        ],
+        completed_factors: vec![CompletedFactor {
+            factor: AuthenticationFactor::Password,
+            completed_at: chrono::Utc::now(),
+            verification_method: "password-hash".to_string(),
+            metadata: HashMap::new(),
+        }],
         risk_assessment: RiskAssessment {
             risk_score: 0.2,
             risk_level: RiskLevel::Low,
@@ -247,10 +233,7 @@ fn test_session_creation() {
     let cmd = CreateAuthenticationSession {
         policy_id,
         identity_ref: IdentityRef::Person(Uuid::new_v4()),
-        factors_used: vec![
-            AuthenticationFactor::Password,
-            AuthenticationFactor::Otp,
-        ],
+        factors_used: vec![AuthenticationFactor::Password, AuthenticationFactor::Otp],
         trust_level: TrustLevel::High,
         session_duration: Duration::hours(8),
         location: LocationContext {

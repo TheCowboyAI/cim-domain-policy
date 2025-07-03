@@ -9,15 +9,15 @@
 
 use cim_domain_policy::{
     aggregate::Policy,
-    commands::{CreatePolicy, AddRule, UpdatePolicy, EvaluateAccess},
-    events::{PolicyCreated, RuleAdded, PolicyUpdated, AccessEvaluated},
-    value_objects::{PolicyId, PolicyType, Rule, Condition, Effect, Resource, Action, Principal},
+    commands::{AddRule, CreatePolicy, EvaluateAccess, UpdatePolicy},
+    events::{AccessEvaluated, PolicyCreated, PolicyUpdated, RuleAdded},
     handlers::PolicyCommandHandler,
-    queries::{GetPolicy, EvaluatePolicy, PolicyQueryHandler},
+    queries::{EvaluatePolicy, GetPolicy, PolicyQueryHandler},
+    value_objects::{Action, Condition, Effect, PolicyId, PolicyType, Principal, Resource, Rule},
 };
-use uuid::Uuid;
-use std::collections::HashMap;
 use serde_json::json;
+use std::collections::HashMap;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,7 +36,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         policy_id: policy_id.clone(),
         policy_type: PolicyType::AccessControl,
         name: "Document Access Policy".to_string(),
-        description: "Controls access to sensitive documents based on user roles and document classification".to_string(),
+        description:
+            "Controls access to sensitive documents based on user roles and document classification"
+                .to_string(),
         created_by: admin_id,
     };
 
@@ -50,13 +52,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         rule: Rule {
             id: Uuid::new_v4(),
             name: "Allow public document access".to_string(),
-            conditions: vec![
-                Condition::ResourceAttribute {
-                    attribute: "classification".to_string(),
-                    operator: "equals".to_string(),
-                    value: json!("public"),
-                },
-            ],
+            conditions: vec![Condition::ResourceAttribute {
+                attribute: "classification".to_string(),
+                operator: "equals".to_string(),
+                value: json!("public"),
+            }],
             effect: Effect::Allow,
             actions: vec![Action::Read, Action::List],
             priority: 100,
@@ -129,13 +129,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         rule: Rule {
             id: Uuid::new_v4(),
             name: "Deny access for terminated employees".to_string(),
-            conditions: vec![
-                Condition::PrincipalAttribute {
-                    attribute: "status".to_string(),
-                    operator: "equals".to_string(),
-                    value: json!("terminated"),
-                },
-            ],
+            conditions: vec![Condition::PrincipalAttribute {
+                attribute: "status".to_string(),
+                operator: "equals".to_string(),
+                value: json!("terminated"),
+            }],
             effect: Effect::Deny,
             actions: vec![Action::All],
             priority: 10, // Highest priority - evaluated first
