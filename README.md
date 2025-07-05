@@ -11,7 +11,7 @@ The Policy domain manages rules, permissions, compliance requirements, and autom
 - **Compliance Tracking**: Monitor and enforce compliance requirements
 - **Automated Enforcement**: Real-time policy evaluation and enforcement
 - **Audit Trail**: Complete history of policy decisions
-- **Role-Based Access**: Support for RBAC and ABAC models
+- **Claims-Based Authorization**: Support for claims-based and attribute-based access control
 - **Policy Templates**: Reusable policy patterns
 
 ## Architecture
