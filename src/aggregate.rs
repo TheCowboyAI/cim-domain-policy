@@ -43,6 +43,84 @@ impl Policy {
         }
     }
 
+    /// Apply an event to create a new policy state (pure function)
+    ///
+    /// This is the core of event sourcing - deriving aggregate state from events.
+    /// Each event transforms the policy into a new state without mutation.
+    pub fn apply_event_pure(&self, event: &crate::events::PolicyEvent) -> Result<Self, crate::PolicyError> {
+        use crate::events::PolicyEvent;
+
+        let mut new_policy = self.clone();
+
+        match event {
+            PolicyEvent::PolicyCreated(e) => {
+                new_policy.id = e.policy_id;
+                new_policy.name = e.name.clone();
+                new_policy.description = e.description.clone();
+                new_policy.version = 1;
+                new_policy.status = PolicyStatus::Draft;
+                new_policy.rules = Vec::new();
+                new_policy.target = PolicyTarget::Global;
+                new_policy.enforcement_level = EnforcementLevel::Advisory;
+                new_policy.effective_date = None;
+                new_policy.expiry_date = None;
+                new_policy.parent_policy_id = None;
+                new_policy.metadata.created_at = e.created_at;
+                new_policy.metadata.created_by = e.created_by.clone();
+            }
+            PolicyEvent::PolicyUpdated(e) => {
+                new_policy.version = e.version;
+                new_policy.metadata.last_modified_at = Some(e.updated_at);
+                new_policy.metadata.last_modified_by = Some(e.updated_by.clone());
+                // Changes are stored in metadata for audit trail
+            }
+            PolicyEvent::PolicyApproved(_e) => {
+                new_policy.status = PolicyStatus::Approved;
+            }
+            PolicyEvent::PolicyActivated(e) => {
+                new_policy.status = PolicyStatus::Active;
+                new_policy.effective_date = Some(e.effective_from);
+                new_policy.expiry_date = e.effective_until;
+            }
+            PolicyEvent::PolicySuspended(_e) => {
+                new_policy.status = PolicyStatus::Suspended;
+            }
+            PolicyEvent::PolicyRevoked(_e) => {
+                new_policy.status = PolicyStatus::Revoked;
+            }
+            PolicyEvent::PolicyArchived(_e) => {
+                new_policy.status = PolicyStatus::Archived;
+            }
+            // Evaluation events don't modify the policy aggregate itself
+            PolicyEvent::PolicyEvaluated(_) |
+            PolicyEvent::PolicyViolationDetected(_) |
+            PolicyEvent::PolicyCompliancePassed(_) => {
+                // These events are for audit/reporting, don't change policy state
+            }
+            // Exemption events don't modify the policy aggregate
+            PolicyEvent::PolicyExemptionGranted(_) |
+            PolicyEvent::PolicyExemptionRevoked(_) |
+            PolicyEvent::PolicyExemptionExpired(_) => {
+                // These modify PolicyExemption aggregate, not Policy
+            }
+            // PolicySet events don't modify policy aggregate
+            PolicyEvent::PolicySetCreated(_) |
+            PolicyEvent::PolicyAddedToSet(_) |
+            PolicyEvent::PolicyRemovedFromSet(_) |
+            PolicyEvent::PolicyConflictDetected(_) => {
+                // These modify PolicySet aggregate, not Policy
+            }
+        }
+
+        Ok(new_policy)
+    }
+
+    /// Backward-compatible mutable wrapper over pure event application
+    pub fn apply_event(&mut self, event: &crate::events::PolicyEvent) -> Result<(), crate::PolicyError> {
+        *self = self.apply_event_pure(event)?;
+        Ok(())
+    }
+
     /// Add a rule to the policy
     pub fn add_rule(&mut self, rule: PolicyRule) {
         self.rules.push(rule);
@@ -135,6 +213,60 @@ impl PolicySet {
         }
     }
 
+    /// Apply an event to create a new policy set state (pure function)
+    pub fn apply_event_pure(&self, event: &crate::events::PolicyEvent) -> Result<Self, crate::PolicyError> {
+        use crate::events::PolicyEvent;
+
+        let mut new_set = self.clone();
+
+        match event {
+            PolicyEvent::PolicySetCreated(e) => {
+                new_set.id = e.policy_set_id;
+                new_set.name = e.name.clone();
+                new_set.description = e.description.clone();
+                new_set.policies = Vec::new();
+                new_set.composition_rule = CompositionRule::All;
+                new_set.conflict_resolution = ConflictResolution::MostRestrictive;
+                new_set.status = PolicyStatus::Draft;
+                new_set.metadata.created_at = e.created_at;
+                new_set.metadata.created_by = e.created_by.clone();
+            }
+            PolicyEvent::PolicyAddedToSet(e) => {
+                if !new_set.policies.contains(&e.policy_id) {
+                    new_set.policies.push(e.policy_id);
+                }
+            }
+            PolicyEvent::PolicyRemovedFromSet(e) => {
+                new_set.policies.retain(|id| id != &e.policy_id);
+            }
+            // Other events don't modify PolicySet aggregate
+            PolicyEvent::PolicyCreated(_) |
+            PolicyEvent::PolicyUpdated(_) |
+            PolicyEvent::PolicyApproved(_) |
+            PolicyEvent::PolicyActivated(_) |
+            PolicyEvent::PolicySuspended(_) |
+            PolicyEvent::PolicyRevoked(_) |
+            PolicyEvent::PolicyArchived(_) |
+            PolicyEvent::PolicyEvaluated(_) |
+            PolicyEvent::PolicyViolationDetected(_) |
+            PolicyEvent::PolicyCompliancePassed(_) |
+            PolicyEvent::PolicyExemptionGranted(_) |
+            PolicyEvent::PolicyExemptionRevoked(_) |
+            PolicyEvent::PolicyExemptionExpired(_) |
+            PolicyEvent::PolicyConflictDetected(_) => {
+                // These don't modify PolicySet
+            }
+        }
+
+        Ok(new_set)
+    }
+
+    /// Backward-compatible mutable wrapper over pure event application
+    pub fn apply_event(&mut self, event: &crate::events::PolicyEvent) -> Result<(), crate::PolicyError> {
+        *self = self.apply_event_pure(event)?;
+        Ok(())
+    }
+
     /// Add a policy to the set
     pub fn add_policy(&mut self, policy_id: PolicyId) {
         if !self.policies.contains(&policy_id) {
@@ -217,6 +349,65 @@ impl PolicyExemption {
             conditions: Vec::new(),
             status: ExemptionStatus::Active,
         }
+    }
+
+    /// Apply an event to create a new exemption state (pure function)
+    pub fn apply_event_pure(&self, event: &crate::events::PolicyEvent) -> Result<Self, crate::PolicyError> {
+        use crate::events::PolicyEvent;
+
+        let mut new_exemption = self.clone();
+
+        match event {
+            PolicyEvent::PolicyExemptionGranted(e) => {
+                new_exemption.id = e.exemption_id;
+                new_exemption.policy_id = e.policy_id;
+                new_exemption.reason = e.reason.clone();
+                new_exemption.justification = String::new(); // Set from command
+                new_exemption.risk_acceptance = e.risk_acceptance.clone();
+                new_exemption.approved_by = e.granted_by.clone();
+                new_exemption.approved_at = e.granted_at;
+                new_exemption.valid_from = e.granted_at;
+                new_exemption.valid_until = e.valid_until;
+                new_exemption.scope = ExemptionScope::Global;
+                new_exemption.conditions = Vec::new();
+                new_exemption.status = ExemptionStatus::Active;
+            }
+            PolicyEvent::PolicyExemptionRevoked(e) => {
+                new_exemption.status = ExemptionStatus::Revoked {
+                    revoked_by: e.revoked_by.clone(),
+                    revoked_at: e.revoked_at,
+                    reason: e.reason.clone(),
+                };
+            }
+            PolicyEvent::PolicyExemptionExpired(_e) => {
+                new_exemption.status = ExemptionStatus::Expired;
+            }
+            // Other events don't modify PolicyExemption aggregate
+            PolicyEvent::PolicyCreated(_) |
+            PolicyEvent::PolicyUpdated(_) |
+            PolicyEvent::PolicyApproved(_) |
+            PolicyEvent::PolicyActivated(_) |
+            PolicyEvent::PolicySuspended(_) |
+            PolicyEvent::PolicyRevoked(_) |
+            PolicyEvent::PolicyArchived(_) |
+            PolicyEvent::PolicyEvaluated(_) |
+            PolicyEvent::PolicyViolationDetected(_) |
+            PolicyEvent::PolicyCompliancePassed(_) |
+            PolicyEvent::PolicySetCreated(_) |
+            PolicyEvent::PolicyAddedToSet(_) |
+            PolicyEvent::PolicyRemovedFromSet(_) |
+            PolicyEvent::PolicyConflictDetected(_) => {
+                // These don't modify PolicyExemption
+            }
+        }
+
+        Ok(new_exemption)
+    }
+
+    /// Backward-compatible mutable wrapper over pure event application
+    pub fn apply_event(&mut self, event: &crate::events::PolicyEvent) -> Result<(), crate::PolicyError> {
+        *self = self.apply_event_pure(event)?;
+        Ok(())
     }
 
     /// Check if exemption is currently valid
