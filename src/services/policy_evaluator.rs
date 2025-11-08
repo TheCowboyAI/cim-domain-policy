@@ -5,7 +5,6 @@ use crate::entities::{PolicyEvaluation, PolicyRule, RuleResult};
 use crate::value_objects::*;
 use std::collections::HashMap;
 use thiserror::Error;
-use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum EvaluationError {

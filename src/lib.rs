@@ -15,20 +15,26 @@
 //! ## Usage
 //!
 //! ```rust
-//! use cim_domain_policy::{Policy, PolicyEvaluator, EvaluationContext};
+//! use cim_domain_policy::{Policy, PolicySet, PolicyExemption};
 //!
-//! // Define a policy
-//! let policy = Policy::new("key_generation_policy")
-//!     .with_rule(Rule::min_key_size(2048))
-//!     .with_rule(Rule::allowed_algorithms(vec!["RSA", "ECDSA"]));
+//! // Create a policy using pure functional approach
+//! let policy = Policy::new("Security Policy", "All users must use MFA");
+//! assert_eq!(policy.name, "Security Policy");
 //!
-//! // Evaluate against the policy
-//! let context = EvaluationContext::new()
-//!     .with_field("key_size", 4096)
-//!     .with_field("algorithm", "RSA");
+//! // Create a policy set
+//! let policy_set = PolicySet::new("Security Policies", "Organization security policies");
+//! assert_eq!(policy_set.policies.len(), 0);
 //!
-//! let result = PolicyEvaluator::evaluate(&policy, &context)?;
-//! assert!(result.is_compliant());
+//! // Create a policy exemption
+//! use chrono::{Utc, Duration};
+//! use cim_domain_policy::value_objects::PolicyId;
+//! let exemption = PolicyExemption::new(
+//!     PolicyId::new(),
+//!     "Service account",
+//!     "No MFA for API keys",
+//!     "security-admin",
+//!     Utc::now() + Duration::days(90),
+//! );
 //! ```
 
 pub mod adapters;

@@ -98,15 +98,3 @@ impl PolicyRepository {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::value_objects::PolicyId;
-
-    #[tokio::test]
-    async fn test_repository_creation() {
-        // This is a basic structure test - actual NATS tests would require a running NATS server
-        let policy_id = PolicyId::new();
-        assert!(policy_id.0.as_u128() > 0);
-    }
-}

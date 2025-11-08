@@ -4,7 +4,6 @@ use crate::entities::PolicyRule;
 use crate::value_objects::*;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 /// The main Policy aggregate root
@@ -459,4 +458,307 @@ pub enum ExemptionStatus {
         revoked_at: DateTime<Utc>,
         reason: String,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::events::*;
+
+    fn create_message_identity() -> cim_domain::MessageIdentity {
+        let id = Uuid::now_v7();
+        cim_domain::MessageIdentity {
+            correlation_id: cim_domain::CorrelationId::Single(id),
+            causation_id: cim_domain::CausationId(id),
+            message_id: id,
+        }
+    }
+
+    #[test]
+    fn test_policy_created_event() {
+        let policy = Policy::new("Test Policy", "Test Description");
+        let policy_id = PolicyId::new();
+        
+        let event = PolicyEvent::PolicyCreated(PolicyCreated {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_id,
+            name: "Created Policy".to_string(),
+            description: "Created Description".to_string(),
+            policy_type: "Security".to_string(),
+            created_by: "test-user".to_string(),
+            created_at: Utc::now(),
+        });
+
+        let new_policy = policy.apply_event_pure(&event).unwrap();
+        assert_eq!(new_policy.id, policy_id);
+        assert_eq!(new_policy.name, "Created Policy");
+        assert_eq!(new_policy.description, "Created Description");
+        assert_eq!(new_policy.status, PolicyStatus::Draft);
+        assert_eq!(new_policy.version, 1);
+    }
+
+    #[test]
+    fn test_policy_approved_event() {
+        let mut policy = Policy::new("Test Policy", "Test Description");
+        policy.status = PolicyStatus::Draft;
+        
+        let event = PolicyEvent::PolicyApproved(PolicyApproved {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_id: policy.id,
+            approved_by: "approver".to_string(),
+            approved_at: Utc::now(),
+            approval_notes: Some("Looks good".to_string()),
+        });
+
+        let new_policy = policy.apply_event_pure(&event).unwrap();
+        assert_eq!(new_policy.status, PolicyStatus::Approved);
+    }
+
+    #[test]
+    fn test_policy_activated_event() {
+        let mut policy = Policy::new("Test Policy", "Test Description");
+        policy.status = PolicyStatus::Approved;
+        
+        let now = Utc::now();
+        let later = now + chrono::Duration::days(30);
+        
+        let event = PolicyEvent::PolicyActivated(PolicyActivated {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_id: policy.id,
+            activated_by: "admin".to_string(),
+            activated_at: Utc::now(),
+            effective_from: now,
+            effective_until: Some(later),
+        });
+
+        let new_policy = policy.apply_event_pure(&event).unwrap();
+        assert_eq!(new_policy.status, PolicyStatus::Active);
+        assert_eq!(new_policy.effective_date, Some(now));
+        assert_eq!(new_policy.expiry_date, Some(later));
+    }
+
+    #[test]
+    fn test_policy_suspended_event() {
+        let mut policy = Policy::new("Test Policy", "Test Description");
+        policy.status = PolicyStatus::Active;
+        
+        let event = PolicyEvent::PolicySuspended(PolicySuspended {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_id: policy.id,
+            suspended_by: "admin".to_string(),
+            suspended_at: Utc::now(),
+            reason: "Under review".to_string(),
+            expected_resume_date: None,
+        });
+
+        let new_policy = policy.apply_event_pure(&event).unwrap();
+        assert_eq!(new_policy.status, PolicyStatus::Suspended);
+    }
+
+    #[test]
+    fn test_policy_revoked_event() {
+        let mut policy = Policy::new("Test Policy", "Test Description");
+        policy.status = PolicyStatus::Active;
+        
+        let event = PolicyEvent::PolicyRevoked(PolicyRevoked {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_id: policy.id,
+            revoked_by: "admin".to_string(),
+            revoked_at: Utc::now(),
+            reason: "Obsolete".to_string(),
+            immediate: true,
+        });
+
+        let new_policy = policy.apply_event_pure(&event).unwrap();
+        assert_eq!(new_policy.status, PolicyStatus::Revoked);
+    }
+
+    #[test]
+    fn test_policy_archived_event() {
+        let mut policy = Policy::new("Test Policy", "Test Description");
+        policy.status = PolicyStatus::Revoked;
+        
+        let event = PolicyEvent::PolicyArchived(PolicyArchived {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_id: policy.id,
+            archived_by: "admin".to_string(),
+            archived_at: Utc::now(),
+            retention_period_days: Some(365),
+        });
+
+        let new_policy = policy.apply_event_pure(&event).unwrap();
+        assert_eq!(new_policy.status, PolicyStatus::Archived);
+    }
+
+    #[test]
+    fn test_policy_set_created_event() {
+        let policy_set = PolicySet::new("Test Set", "Test Description");
+        let set_id = PolicySetId::new();
+        
+        let event = PolicyEvent::PolicySetCreated(PolicySetCreated {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_set_id: set_id,
+            name: "Created Set".to_string(),
+            description: "Created Description".to_string(),
+            created_by: "test-user".to_string(),
+            created_at: Utc::now(),
+        });
+
+        let new_set = policy_set.apply_event_pure(&event).unwrap();
+        assert_eq!(new_set.id, set_id);
+        assert_eq!(new_set.name, "Created Set");
+        assert_eq!(new_set.description, "Created Description");
+        assert_eq!(new_set.policies.len(), 0);
+    }
+
+    #[test]
+    fn test_policy_added_to_set_event() {
+        let mut policy_set = PolicySet::new("Test Set", "Test Description");
+        assert_eq!(policy_set.policies.len(), 0);
+        
+        let policy_id = PolicyId::new();
+        let event = PolicyEvent::PolicyAddedToSet(PolicyAddedToSet {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_set_id: policy_set.id,
+            policy_id,
+            added_by: "admin".to_string(),
+            added_at: Utc::now(),
+        });
+
+        let new_set = policy_set.apply_event_pure(&event).unwrap();
+        assert_eq!(new_set.policies.len(), 1);
+        assert!(new_set.policies.contains(&policy_id));
+    }
+
+    #[test]
+    fn test_policy_removed_from_set_event() {
+        let mut policy_set = PolicySet::new("Test Set", "Test Description");
+        let policy_id = PolicyId::new();
+        policy_set.policies.push(policy_id);
+        
+        let event = PolicyEvent::PolicyRemovedFromSet(PolicyRemovedFromSet {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_set_id: policy_set.id,
+            policy_id,
+            removed_by: "admin".to_string(),
+            removed_at: Utc::now(),
+            reason: Some("Test removal".to_string()),
+        });
+
+        let new_set = policy_set.apply_event_pure(&event).unwrap();
+        assert_eq!(new_set.policies.len(), 0);
+        assert!(!new_set.policies.contains(&policy_id));
+    }
+
+    #[test]
+    fn test_exemption_granted_event() {
+        let exemption = PolicyExemption::new(
+            PolicyId::new(),
+            "Test Reason",
+            "Justification",
+            "test-user",
+            Utc::now() + chrono::Duration::days(30),
+        );
+        let exemption_id = ExemptionId::new();
+        let policy_id = PolicyId::new();
+
+        let event = PolicyEvent::PolicyExemptionGranted(PolicyExemptionGranted {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            exemption_id,
+            policy_id,
+            granted_by: "admin".to_string(),
+            granted_at: Utc::now(),
+            reason: "Granted".to_string(),
+            valid_until: Utc::now() + chrono::Duration::days(30),
+            risk_acceptance: Some("Acceptable risk".to_string()),
+        });
+
+        let new_exemption = exemption.apply_event_pure(&event).unwrap();
+        assert_eq!(new_exemption.id, exemption_id);
+        assert_eq!(new_exemption.policy_id, policy_id);
+        assert_eq!(new_exemption.reason, "Granted");
+        assert_eq!(new_exemption.status, ExemptionStatus::Active);
+    }
+
+    #[test]
+    fn test_exemption_revoked_event() {
+        let mut exemption = PolicyExemption::new(
+            PolicyId::new(),
+            "Test Reason",
+            "Justification",
+            "test-user",
+            Utc::now() + chrono::Duration::days(30),
+        );
+        let policy_id = exemption.policy_id;
+        exemption.status = ExemptionStatus::Active;
+        
+        let event = PolicyEvent::PolicyExemptionRevoked(PolicyExemptionRevoked {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            exemption_id: exemption.id,
+            policy_id,
+            revoked_by: "admin".to_string(),
+            revoked_at: Utc::now(),
+            reason: "No longer needed".to_string(),
+        });
+
+        let new_exemption = exemption.apply_event_pure(&event).unwrap();
+        assert!(matches!(new_exemption.status, ExemptionStatus::Revoked { .. }));
+    }
+
+    #[test]
+    fn test_exemption_expired_event() {
+        let mut exemption = PolicyExemption::new(
+            PolicyId::new(),
+            "Test Reason",
+            "Justification",
+            "test-user",
+            Utc::now() + chrono::Duration::days(30),
+        );
+        let policy_id = exemption.policy_id;
+        exemption.status = ExemptionStatus::Active;
+        
+        let event = PolicyEvent::PolicyExemptionExpired(PolicyExemptionExpired {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            exemption_id: exemption.id,
+            policy_id,
+            expired_at: Utc::now(),
+        });
+
+        let new_exemption = exemption.apply_event_pure(&event).unwrap();
+        assert_eq!(new_exemption.status, ExemptionStatus::Expired);
+    }
+
+    #[test]
+    fn test_policy_pure_event_application_is_immutable() {
+        let original = Policy::new("Original", "Description");
+        let original_name = original.name.clone();
+        let original_status = original.status.clone();
+        
+        let event = PolicyEvent::PolicyApproved(PolicyApproved {
+            event_id: Uuid::now_v7(),
+            identity: create_message_identity(),
+            policy_id: original.id,
+            approved_by: "approver".to_string(),
+            approved_at: Utc::now(),
+            approval_notes: None,
+        });
+
+        let _new = original.apply_event_pure(&event).unwrap();
+        
+        // Original is unchanged
+        assert_eq!(original.name, original_name);
+        assert_eq!(original.status, original_status);
+    }
 }

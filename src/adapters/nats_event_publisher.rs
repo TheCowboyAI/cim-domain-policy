@@ -112,14 +112,3 @@ impl EventPublisher for NatsEventPublisher {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_nats_publisher_creation() {
-        // Structure test - actual NATS tests require a running server
-        let stream_name = "POLICY_EVENTS".to_string();
-        assert!(!stream_name.is_empty());
-    }
-}

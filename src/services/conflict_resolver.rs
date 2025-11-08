@@ -3,7 +3,7 @@
 use crate::aggregate::{ConflictResolution, Policy};
 use crate::entities::{PolicyConflict, ConflictType, PolicyRule};
 use crate::value_objects::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use thiserror::Error;
 use uuid::Uuid;
 

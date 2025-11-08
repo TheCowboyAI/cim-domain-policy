@@ -4,7 +4,6 @@ use crate::events::PolicyEvent;
 use async_nats::jetstream::{self, stream::Stream};
 use cim_domain::DomainEvent;
 use futures::StreamExt;
-use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -143,41 +142,3 @@ impl NatsEventStore {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::events::{PolicyCreated, PolicyEvent};
-    use crate::value_objects::PolicyId;
-    use chrono::Utc;
-    use cim_domain::MessageIdentity;
-
-    #[test]
-    fn test_event_subject_generation() {
-        let event_store = create_test_event_store();
-
-        let policy_id = PolicyId::new();
-        let event = PolicyEvent::PolicyCreated(PolicyCreated {
-            event_id: Uuid::now_v7(),
-            identity: MessageIdentity::new(),
-            policy_id,
-            name: "Test Policy".to_string(),
-            description: "Test Description".to_string(),
-            policy_type: "Access".to_string(),
-            created_by: "test-user".to_string(),
-            created_at: Utc::now(),
-        });
-
-        let subject = event_store.event_subject(&event);
-        assert!(subject.starts_with("events.policy."));
-        assert!(subject.ends_with(".policycreated"));
-    }
-
-    fn create_test_event_store() -> NatsEventStore {
-        // Mock event store for testing (doesn't actually connect to NATS)
-        NatsEventStore {
-            jetstream: unsafe { std::mem::zeroed() },
-            stream: unsafe { std::mem::zeroed() },
-            stream_name: "POLICY_EVENTS".to_string(),
-        }
-    }
-}

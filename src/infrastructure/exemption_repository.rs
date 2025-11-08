@@ -4,7 +4,6 @@ use crate::aggregate::PolicyExemption;
 use crate::events::{PolicyEvent, PolicyExemptionGranted};
 use crate::infrastructure::nats_integration::{NatsError, NatsEventStore};
 use crate::value_objects::ExemptionId;
-use chrono::Utc;
 use cim_domain::DomainEvent;
 use std::sync::Arc;
 use thiserror::Error;

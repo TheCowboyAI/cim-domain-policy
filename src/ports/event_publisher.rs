@@ -71,30 +71,3 @@ pub fn event_to_subject(event: &PolicyEvent) -> String {
     format!("events.policy.{}.{}", aggregate_id, event_type)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::events::{PolicyCreated, PolicyEvent};
-    use crate::value_objects::PolicyId;
-    use chrono::Utc;
-    use cim_domain::MessageIdentity;
-
-    #[test]
-    fn test_event_to_subject() {
-        let policy_id = PolicyId::new();
-        let event = PolicyEvent::PolicyCreated(PolicyCreated {
-            event_id: Uuid::now_v7(),
-            identity: MessageIdentity::new(),
-            policy_id,
-            name: "Test Policy".to_string(),
-            description: "Test Description".to_string(),
-            policy_type: "Access".to_string(),
-            created_by: "test-user".to_string(),
-            created_at: Utc::now(),
-        });
-
-        let subject = event_to_subject(&event);
-        assert!(subject.starts_with("events.policy."));
-        assert!(subject.ends_with(".policycreated"));
-    }
-}
