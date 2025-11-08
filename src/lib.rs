@@ -31,10 +31,13 @@
 //! assert!(result.is_compliant());
 //! ```
 
+pub mod adapters;
 pub mod aggregate;
 pub mod commands;
 pub mod entities;
 pub mod events;
+pub mod infrastructure;
+pub mod ports;
 pub mod sagas;
 pub mod services;
 pub mod value_objects;
