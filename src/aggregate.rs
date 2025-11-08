@@ -115,12 +115,6 @@ impl Policy {
         Ok(new_policy)
     }
 
-    /// Backward-compatible mutable wrapper over pure event application
-    pub fn apply_event(&mut self, event: &crate::events::PolicyEvent) -> Result<(), crate::PolicyError> {
-        *self = self.apply_event_pure(event)?;
-        Ok(())
-    }
-
     /// Add a rule to the policy
     pub fn add_rule(&mut self, rule: PolicyRule) {
         self.rules.push(rule);
@@ -261,12 +255,6 @@ impl PolicySet {
         Ok(new_set)
     }
 
-    /// Backward-compatible mutable wrapper over pure event application
-    pub fn apply_event(&mut self, event: &crate::events::PolicyEvent) -> Result<(), crate::PolicyError> {
-        *self = self.apply_event_pure(event)?;
-        Ok(())
-    }
-
     /// Add a policy to the set
     pub fn add_policy(&mut self, policy_id: PolicyId) {
         if !self.policies.contains(&policy_id) {
@@ -402,12 +390,6 @@ impl PolicyExemption {
         }
 
         Ok(new_exemption)
-    }
-
-    /// Backward-compatible mutable wrapper over pure event application
-    pub fn apply_event(&mut self, event: &crate::events::PolicyEvent) -> Result<(), crate::PolicyError> {
-        *self = self.apply_event_pure(event)?;
-        Ok(())
     }
 
     /// Check if exemption is currently valid

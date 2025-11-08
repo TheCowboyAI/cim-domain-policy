@@ -23,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pure Functional Architecture**: Complete conversion to pure functions following CT/FRP principles
   - `apply_event_pure(&self) → Result<Self>` method for pure event application
   - All domain logic now side-effect free
-  - Backward-compatible `apply_event(&mut self)` wrapper
   - Handles all 17 PolicyEvent types across 3 aggregates:
     - **Policy Lifecycle** (7 events):
       - PolicyCreated - policy creation
@@ -151,6 +150,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `src/bin/` - Service binary
   - `deployment/nix/` - Nix deployment modules (4 files)
 
+### Removed
+
+- **Mutable Event Application API**: Removed unused backward compatibility layer
+  - Removed `apply_event(&mut self)` from all 3 aggregates
+  - This API was never used in production
+  - Use `apply_event_pure(&self) → Result<Self>` instead
+  - **Note**: This is technically a breaking change, but has zero real-world impact
+
 ### Fixed
 
 - None (new functionality, no bugs fixed)
@@ -178,14 +185,24 @@ This release represents a fundamental architectural shift to pure functional pro
 
 For users upgrading from 0.7.x:
 
-#### Backward Compatible (No Breaking Changes)
+#### Breaking Change (Minor Impact)
 
-1. **Existing Code**: Continues to work via backward-compatible wrappers
-2. **New Code**: Use `apply_event_pure()` for pure functional approach
-3. **NATS Deployment**: Optional - library can still be used standalone
-4. **Service Binary**: Optional - use if deploying as NATS service
+**Removed**: `apply_event(&mut self)` method from all aggregates.
 
-#### Adopting New Patterns (Optional)
+**Why**: This API was never used in production. The domain was designed for v0.8.0 from the start.
+
+**Impact**: Zero real-world impact - no production code uses this API.
+
+#### New Architecture Patterns
+
+**Pure Functional Event Application**:
+```rust
+use cim_domain_policy::{Policy, PolicyEvent};
+
+// Pure functional approach (ONLY option now)
+let policy = /* ... */;
+let new_policy = policy.apply_event_pure(&event)?;
+```
 
 **Event Sourcing**:
 ```rust
@@ -204,19 +221,6 @@ let repository = Arc::new(
 
 // Load policy from events
 let policy = repository.load(policy_id).await?;
-```
-
-**Pure Functional Pattern**:
-```rust
-use cim_domain_policy::{Policy, PolicyEvent};
-
-// Old (mutable)
-let mut policy = /* ... */;
-policy.apply_event(&event)?;
-
-// New (pure functional)
-let policy = /* ... */;
-let new_policy = policy.apply_event_pure(&event)?;
 ```
 
 **NATS Service Deployment**:

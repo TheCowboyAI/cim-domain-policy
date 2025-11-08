@@ -11,9 +11,9 @@ Pure functional policy management domain with NATS event sourcing for CIM (Compo
 - **NATS JetStream Integration**: Durable event streaming and storage
 - **Production-Ready Service**: NATS-enabled policy-service binary
 - **Easy Deployment**: Unified leaf node module for NixOS/nix-darwin
-- **Backward Compatible**: 100% compatible with v0.7.x
 - **Security Hardened**: Built-in systemd security features
 - **Rich Domain Model**: Policies, policy sets, exemptions, and rules
+- **Clean Break from v0.7.x**: Pure functional only, no mutable API
 
 ## Quick Start
 
@@ -336,27 +336,28 @@ Current test coverage:
 
 ## Migration from v0.7.x
 
-### No Breaking Changes
+### Breaking Change (Zero Impact)
 
-v0.8.0 is 100% backward compatible with v0.7.x:
+**Removed**: `apply_event(&mut self)` method from all aggregates.
+
+**Why**: This API was never used in production. The domain was designed for pure functional v0.8.0 from the start.
+
+**Impact**: Zero real-world impact.
+
+### New Pure Functional Architecture
+
+v0.8.0 uses pure functions exclusively:
 
 ```rust
-// This still works exactly the same
-let mut policy = Policy::new(/* ... */)?;
-policy.update(/* ... */)?;
-```
-
-### Optional: Adopt New Patterns
-
-```rust
-// Use pure functional approach
+// Pure functional event application (ONLY option)
+let policy = /* ... */;
 let new_policy = policy.apply_event_pure(&event)?;
 
-// Use event sourcing
+// Event sourcing with repositories
 let repository = PolicyRepository::new(event_store);
 let policy = repository.load(policy_id).await?;
 
-// Deploy as NATS service
+// NATS service deployment
 $ policy-service
 ```
 
