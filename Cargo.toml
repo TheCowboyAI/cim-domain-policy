@@ -1,9 +1,9 @@
 [package]
 name = "cim-domain-policy"
-version = "0.7.8"
+version = "0.8.0"
 edition = "2021"
 authors = ["The Cowboy AI Team"]
-description = "Policy domain for CIM - Rule definition, evaluation, and enforcement"
+description = "Policy domain for CIM - Pure functional event sourcing with NATS JetStream"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/thecowboyai/cim-domain-policy"
 keywords = ["cim", "domain", "policy", "compliance", "rules"]
