@@ -21,6 +21,10 @@ chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0"
 async-trait = "0.1"
 
+# NATS messaging
+async-nats = "0.38"
+futures = "0.3"
+
 # Rule engine
 pest = "2.7"
 pest_derive = "2.7"
