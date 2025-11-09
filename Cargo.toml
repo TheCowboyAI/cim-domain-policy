@@ -11,7 +11,7 @@ categories = ["domain-driven-design"]
 
 [dependencies]
 # Core CIM dependencies
-cim-domain = { git = "https://github.com/TheCowboyAI/cim-domain.git", branch = "main" }
+cim-domain = { git = "https://github.com/TheCowboyAI/cim-domain.git", tag = "v0.8.0" }
 
 # Core dependencies
 uuid = { version = "1.11", features = ["v7", "serde"] }
